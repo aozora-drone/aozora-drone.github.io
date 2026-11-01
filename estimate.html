@@ -45,8 +45,9 @@ select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;bord
 <header><div class="wrap"><a class="logo" href="index.html">あおぞらドローン</a><a href="index.html" class="note">ホームへ戻る</a></div></header>
 <div class="wrap">
   <h1>目安の見積もり</h1>
-  <p class="lead">地図で田んぼをタップして選ぶと、作業時間と料金の目安が出ます。<b>お名前やお電話番号は不要</b>です。正式なお見積りは、下見のあとにお伝えします。</p>
-  <div class="find"><input id="q" placeholder="地名でさがす（例：宝塚市玉瀬）"><button class="sub" onclick="findPlace()">さがす</button></div>
+  <p class="lead">地図で田んぼをタップして選ぶと、作業時間と料金の目安が出ます。<b>お名前・ご住所・お電話番号は不要</b>です。正式なお見積りは、下見のあとにお伝えします。</p>
+  <p class="note" style="margin:0 0 12px">地図で田んぼを選んでも、お名前やご住所がこちらにわかることはありません（地図の田んぼの形には、持ち主の情報は入っていません）。田んぼの正確な場所は、下見のときにご一緒に確認します。</p>
+  <div class="find"><input id="q" placeholder="地区名でさがす（例：玉瀬、小柿）"><button class="sub" onclick="findPlace()">さがす</button></div>
   <div id="hits" class="note"></div>
   <div id="map"></div>
   <p class="note"><b id="hint">水色の四角が、田んぼのデータがある範囲です。四角をタップすると拡大します。</b><br>地図にない田んぼは、下の「その他の面積」に入れてください。</p>
