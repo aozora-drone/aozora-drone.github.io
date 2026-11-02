@@ -83,10 +83,10 @@ select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;bord
       <button id="send" style="margin-top:12px;width:100%" onclick="send()">この内容で相談する</button>
       <p class="note">受付番号：<b id="rid"></b>（変更のご連絡のときにお伝えください）</p>
       <div id="after" hidden style="margin-top:10px;padding:12px;border-radius:10px;background:#e8f5e9">
-        <p style="margin:0 0 8px"><b>受付フォームを別の画面で開きました。</b>内容を確かめて「送信」を押してください。</p>
-        <p style="margin:0 0 8px">続けてLINEでご相談いただけます。ボタンを押すと、受付番号が入った文が用意されます。そのまま送ってください。</p>
+        <p style="margin:0 0 8px"><b>受け付けました。</b>受付番号：<b><span id="rid2"></span></b></p>
+        <p style="margin:0 0 8px">続けてLINEでご相談ください。ボタンを押すと、受付番号が入った文が用意されます。そのまま送ってください。</p>
         <a id="lineBtn" href="#" style="display:block;text-align:center;background:#06c755;color:#fff;font-weight:700;text-decoration:none;padding:12px;border-radius:10px">LINEで相談する</a>
-        <p class="note" style="margin:8px 0 0">フォームの画面が開かなかったときは <a id="formLink" href="#" target="_blank" rel="noopener">こちら</a></p>
+        <p class="note" style="margin:8px 0 0">うまく送れなかったときは、<a id="formLink" href="#" target="_blank" rel="noopener">受付フォーム</a>からも送れます。</p>
       </div>
     </div>
   </div>
@@ -273,10 +273,15 @@ function send(){
   Object.keys(s).forEach(k => { if(CFG.form[k]) p.append(CFG.form[k], s[k]); });
   const url = CFG.form.url + "?" + p.toString();
   $("formLink").href = url;
+  $("rid2").textContent = rid;
+  // 画面を移らずに、そのまま受付フォームへ送る
+  const body = new URLSearchParams();
+  Object.keys(s).forEach(k => { if(CFG.form[k]) body.append(CFG.form[k], s[k] || "（なし）"); });   // 空欄があると受け付けられないことがあるため
+  fetch(CFG.form.url.replace(/viewform$/, "formResponse"), {method: "POST", mode: "no-cors", body}).catch(() => {});
+  $("send").disabled = true; $("send").textContent = "送りました";
   $("lineBtn").href = "https://line.me/R/oaMessage/" + CFG.line + "/?" +
     encodeURIComponent("受付番号 " + rid + " で目安の見積もりを送りました。");
   $("after").hidden = false;
-  window.open(url, "_blank", "noopener");
   $("after").scrollIntoView({behavior: "smooth", block: "center"});
 }
 
