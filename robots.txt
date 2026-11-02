@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://aozora-drone.github.io/sitemap.xml
