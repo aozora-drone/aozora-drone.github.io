@@ -105,7 +105,7 @@ const CFG = {
   gas: 170, kmPerL: 12,          // ガソリン代（円/L）と燃費（km/L）
   rules: [[0.5, 1], [1.0, 2], [1.5, 3]],  // [片道の時間（時間）, お受けする面積の目安（ha）]
   line: "@839nylhf",             // LINE公式アカウントのID
-  tiles: "tiles/",
+  tiles: "tiles2/",
   // 受付フォーム（Googleフォーム）ができたら、URLと各項目の entry 番号を入れる
   form: { url: "https://docs.google.com/forms/d/e/1FAIpQLSfR2NHju3voNgaWBnZVYtXNsKdxzs8miWd1mLF_HPJh-FY7iw/viewform",
           id: "entry.1948679699", area: "entry.900401596", trip: "entry.220520862", cls: "entry.1492246548",
@@ -138,7 +138,7 @@ function drawAreas(){
   index.tiles.forEach(k => {
     const [ix, iy] = k.split("_").map(Number);
     L.rectangle([[iy*s, ix*s], [(iy+1)*s, (ix+1)*s]],
-      {color:"#00e5ff", weight:1, fillColor:"#00e5ff", fillOpacity:0.25})
+      {stroke:false, fillColor:"#00e5ff", fillOpacity:0.12})
      .on("click", e => map.setView(e.latlng, 16)).addTo(areaLayer);
   });
 }
@@ -150,7 +150,8 @@ function hint(){
 async function loadTiles(){
   if(!index){ try{ index = await (await fetch(CFG.tiles + "index.json")).json(); }catch(e){ return; } }
   drawAreas(); hint();
-  if(map.getZoom() < 15) return;
+  if(map.getZoom() < 15){ map.removeLayer(fieldLayer); return; }
+  map.addLayer(fieldLayer);
   const b = map.getBounds(), s = index.step;
   const have = new Set(index.tiles);
   for(let ix=Math.floor(b.getWest()/s)-1; ix<=Math.floor(b.getEast()/s)+1; ix++){
