@@ -44,6 +44,8 @@ select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;bord
 #map.painting.del{outline-color:#ff7043}
 #paintTip{display:none;position:absolute;z-index:1000;left:50%;top:10px;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:14px;padding:4px 12px;border-radius:14px;pointer-events:none}
 #map.painting #paintTip{display:block}
+#guideTip{position:absolute;z-index:1000;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:14px;padding:6px 14px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .4s;white-space:nowrap}
+#guideTip.show{opacity:1}
 </style>
 </head>
 <body>
@@ -240,6 +242,17 @@ mapEl.addEventListener("mousedown", e => { if(e.button === 0) startHold(e.client
 mapEl.addEventListener("mousemove", e => moveTo(e, e.clientX, e.clientY, false), true);
 window.addEventListener("mouseup", endPaint, true);
 
+// 拡大して田んぼが出たとき、1回だけ「長押ししてなぞると…」を少し出す
+const guide = document.createElement("div"); guide.id = "guideTip";
+guide.textContent = "長押ししてなぞると、まとめて選べます";
+mapEl.appendChild(guide);
+let guided = false;
+map.on("zoomend", () => {
+  if(guided || map.getZoom() < 15) return;
+  guided = true;
+  guide.classList.add("show");
+  setTimeout(() => guide.classList.remove("show"), 4000);
+});
 map.on("moveend", loadTiles);
 
 function toggle(k, a, layer){
