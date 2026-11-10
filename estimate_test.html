@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>【ためし】目安の見積もり｜あおぞらドローン</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--sky:#1e88e5;--sky-d:#1565c0;--sky-l:#e3f2fd;--leaf:#2e7d32;--leaf-l:#e8f5e9;--amber:#b26a00;--amber-l:#fff3e0;--ink:#1f2933;--sub:#52606d;--line:#d9e2ec;--bg:#f7fafc}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;font-size:16px}
+header{background:#fff;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;justify-content:space-between;align-items:center;height:52px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.logo{font-weight:700;color:var(--sky-d);text-decoration:none}
+h1{font-size:22px;margin:16px 0 4px}
+.lead{color:var(--sub);margin:0 0 12px;font-size:15px}
+.find{display:flex;gap:8px;margin-bottom:8px}
+.find input{flex:1;min-width:0;font-size:16px;padding:10px;border:1px solid #bbb;border-radius:8px}
+button{font-size:16px;padding:10px 16px;border:0;border-radius:8px;background:var(--sky);color:#fff;font-weight:700;cursor:pointer}
+button.sub{background:#607d8b}
+button:disabled{background:#9aa5b1}
+#map{height:58vh;min-height:320px;border-radius:12px;border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 24px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.card h2{font-size:17px;margin:0 0 8px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{color:var(--sub);width:42%}
+td b{font-variant-numeric:tabular-nums}
+.res{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px}
+.ok{background:var(--leaf-l);color:var(--leaf)}
+.mid{background:var(--amber-l);color:var(--amber)}
+.ng{background:#eceff1;color:#455a64}
+label{display:block;font-size:14px;color:var(--sub);margin:8px 0 2px}
+select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;border-radius:8px;font-family:inherit}
+.note{font-size:13px;color:var(--sub)}
+#hits button{font-size:14px;padding:6px 10px;margin:2px;background:#607d8b}
+#copybox{width:100%;height:150px;font-size:13px}
+#map{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#map.painting{outline:5px solid #ffeb3b;outline-offset:-5px}
+#map.painting.del{outline-color:#ff7043}
+#paintTip{display:none;position:absolute;z-index:1000;left:50%;top:10px;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:14px;padding:4px 12px;border-radius:14px;pointer-events:none}
+#map.painting #paintTip{display:block}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="logo" href="index.html">あおぞらドローン</a><a href="index.html" class="note">ホームへ戻る</a></div></header>
+<div class="wrap">
+  <p class="note" style="margin:8px 0 0"><a href="index.html">← ホームへ戻る</a></p>
+  <h1>目安の見積もり・ご相談</h1>
+  <p class="lead">地図で田んぼをタップして選ぶか、下の「地図にない田んぼ」に地区名と広さを入れると、作業時間と料金の目安が出ます。<b>お名前・ご住所・お電話番号は不要</b>です。正式なお見積りは、下見のあとにお伝えします。</p>
+  <p class="note" style="margin:0 0 12px">地図で田んぼを選んでも、お名前やご住所がこちらにわかることはありません（地図の田んぼの形には、持ち主の情報は入っていません）。田んぼの正確な場所は、下見のときにご一緒に確認します。</p>
+  <p class="note" style="margin:0 0 12px;background:#fff3e0;border-radius:8px;padding:8px 10px"><b>お受けする目安：</b>拠点（宝塚市）から片道30分までは1ha以上、1時間までは2ha以上、1時間半までは3ha以上。ご近所とまとめてのご依頼も歓迎です。作業日は土日祝日が中心です。</p>
+  <div class="find"><input id="q" placeholder="地区名でさがす（例：玉瀬、小柿）"><button class="sub" onclick="findPlace()">さがす</button></div>
+  <div id="hits" class="note"></div>
+  <div id="map"></div>
+  <p class="note"><b id="hint">うすい水色が、田んぼのデータがある範囲です。タップすると拡大します。</b><br>地図にない田んぼは、下の「地図にない田んぼ」に地区名と広さを入れてください。</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>選んだ田んぼと目安</h2>
+      <table>
+        <tr><td>選んだ田んぼ</td><td><b id="n">0</b> 枚</td></tr>
+        <tr><td>地図にない田んぼ</td><td>
+          <input id="place2" placeholder="地区名（例：玉瀬）" style="width:100%;font-size:16px;padding:4px;margin-bottom:4px"><br>
+          <input id="extra" placeholder="広さ（例：3反、50a、0.5ha）" style="width:100%;font-size:16px;padding:4px"><br>
+          <span class="note" id="extraHa"></span></td></tr>
+        <tr><td>合計の面積</td><td><b id="area">0</b> ha</td></tr>
+        <tr><td>拠点からの片道</td><td><b id="trip">―</b></td></tr>
+        <tr><td>作業時間の目安</td><td><b id="time">―</b></td></tr>
+        <tr><td>散布の料金の目安</td><td><b id="price">―</b></td></tr>
+        <tr><td>交通費の目安</td><td><b id="fuel">―</b><br><span class="note">ガソリン代の往復分。高速道路を使う場合、料金は別途。</span></td></tr>
+      </table>
+      <div id="res" class="res ng">田んぼを選ぶと、お受けできるかの目安が出ます。</div>
+      <button class="sub" style="margin-top:10px" onclick="clearSel()">選択をすべて解除</button>
+    </div>
+    <div class="card">
+      <h2>ご相談の内容</h2>
+      <label for="content">散布したいもの</label>
+      <select id="content"><option>農薬（殺虫・殺菌）</option><option>除草剤</option><option>肥料（追肥など）</option><option>まだ決めていない</option></select>
+      <label for="period">時期のご希望</label>
+      <select id="period"><option>6月</option><option>7月</option><option selected>8月</option><option>9月</option><option>時期はご相談</option></select>
+      <label for="memo">下見のご希望日・気になること（任意）</label>
+      <textarea id="memo" rows="3" placeholder="例：土日の午前なら立ち会えます。近くに電線があります。"></textarea>
+      <button id="send" style="margin-top:12px;width:100%" onclick="send()">この内容で相談する</button>
+      <p class="note">受付番号：<b id="rid"></b>（変更のご連絡のときにお伝えください）</p>
+      <div id="after" hidden style="margin-top:10px;padding:12px;border-radius:10px;background:#e8f5e9">
+        <p style="margin:0 0 8px"><b>受け付けました。</b>受付番号：<b><span id="rid2"></span></b></p>
+        <p style="margin:0 0 8px">続けてLINEでご相談ください。ボタンを押すと、受付番号が入った文が用意されます。そのまま送ってください。</p>
+        <a id="lineBtn" href="#" style="display:block;text-align:center;background:#06c755;color:#fff;font-weight:700;text-decoration:none;padding:12px;border-radius:10px">LINEで相談する</a>
+        <p class="note" style="margin:8px 0 0">うまく送れなかったときは、<a id="formLink" href="#" target="_blank" rel="noopener">受付フォーム</a>からも送れます。</p>
+      </div>
+    </div>
+  </div>
+  <p class="note">※料金は目安です。薬剤代は含みません。田んぼの形・周りの状況・日程によって変わります。<br>出典：農林水産省「筆ポリゴン」を加工して作成。背景：国土地理院の空中写真。</p>
+</div>
+
+<script>
+// ===== 設定（数字はここで変えられます）=====
+const CFG = {
+  base: [34.7996, 135.3602],     // 拠点（宝塚市役所付近）
+  roadFactor: 1.3,               // 直線距離 → 道のりの換算
+  speed: 35,                     // 平均の速さ（km/時）
+  sprayRate: 3,                  // 1時間に散布できる面積（ha）
+  setupHours: 1,                 // 準備と片付け（時間）
+  priceLow: 25000, priceHigh: 40000,   // 1haあたりの料金（円）
+  gas: 170, kmPerL: 12,          // ガソリン代（円/L）と燃費（km/L）
+  rules: [[0.5, 1], [1.0, 2], [1.5, 3]],  // [片道の時間（時間）, お受けする面積の目安（ha）]
+  line: "@839nylhf",             // LINE公式アカウントのID
+  tiles: "tiles2/",
+  // 受付フォーム（Googleフォーム）ができたら、URLと各項目の entry 番号を入れる
+  form: { url: "https://docs.google.com/forms/d/e/1FAIpQLSfR2NHju3voNgaWBnZVYtXNsKdxzs8miWd1mLF_HPJh-FY7iw/viewform",
+          id: "entry.1948679699", area: "entry.900401596", trip: "entry.220520862", cls: "entry.1492246548",
+          place: "entry.1895849638", content: "entry.639793164", period: "entry.434263327", memo: "entry.1018691374" }
+};
+// ============================================
+
+const $ = id => document.getElementById(id);
+const _d = new Date(), _p = n => String(n).padStart(2, "0");
+const rid = "R" + String(_d.getFullYear()).slice(2) + _p(_d.getMonth() + 1) + _p(_d.getDate()) + "-" + Math.random().toString(36).slice(2,6).toUpperCase();
+$("rid").textContent = rid;
+
+const map = L.map("map").setView([34.88, 135.30], 12);
+L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
+  {maxNativeZoom:18, maxZoom:20, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> ｜ 田んぼの形：<a href="https://www.maff.go.jp/j/tokei/porigon/" target="_blank">農林水産省「筆ポリゴン」</a>を加工して作成'}).addTo(map);
+
+let FK = 0; const REG = new Map();   // 田んぼの線 → {k, a, layer}
+let noClickUntil = 0;
+const selected = new Map();       // key -> {a, layer}
+const loaded = new Set();
+let index = null;
+const fieldLayer = L.layerGroup().addTo(map);
+const style0 = {color:"#00e5ff", weight:2.5, fillColor:"#00e5ff", fillOpacity:0.15};
+const style1 = {color:"#ffeb3b", weight:3, fillColor:"#1e88e5", fillOpacity:0.45};
+
+// 田んぼのデータがある範囲（縮小したときの目印）
+const areaLayer = L.layerGroup().addTo(map);
+function drawAreas(){
+  areaLayer.clearLayers();
+  if(!index || map.getZoom() >= 15) return;
+  const s = index.step;
+  index.tiles.forEach(k => {
+    const [ix, iy] = k.split("_").map(Number);
+    L.rectangle([[iy*s, ix*s], [(iy+1)*s, (ix+1)*s]],
+      {stroke:false, fillColor:"#00e5ff", fillOpacity:0.12})
+     .on("click", e => map.setView(e.latlng, 16)).addTo(areaLayer);
+  });
+}
+function hint(){
+  const z = map.getZoom();
+  $("hint").textContent = z < 15 ? "うすい水色が、田んぼのデータがある範囲です。タップすると拡大します。"
+                                 : "水色の線が田んぼ1枚ずつの形です。タップで選択（もう一度タップで解除）。長押ししてなぞると、まとめて選べます。";
+}
+async function loadTiles(){
+  if(!index){ try{ index = await (await fetch(CFG.tiles + "index.json")).json(); }catch(e){ return; } }
+  drawAreas(); hint();
+  if(map.getZoom() < 15){ map.removeLayer(fieldLayer); return; }
+  map.addLayer(fieldLayer);
+  const b = map.getBounds(), s = index.step;
+  const have = new Set(index.tiles);
+  for(let ix=Math.floor(b.getWest()/s)-1; ix<=Math.floor(b.getEast()/s)+1; ix++){
+    for(let iy=Math.floor(b.getSouth()/s)-1; iy<=Math.floor(b.getNorth()/s)+1; iy++){
+      const key = ix + "_" + iy;
+      if(!have.has(key) || loaded.has(key)) continue;
+      loaded.add(key);
+      try{
+        const fc = await (await fetch(CFG.tiles + key + ".json")).json();
+        fc.features.forEach((f, i) => {
+          const k = key + ":" + i;
+          const layer = L.geoJSON(f, {style: style0, className: "fk" + (++FK)});
+          REG.set("fk" + FK, {k, a: f.properties.a, layer});
+          layer.on("click", () => { if(Date.now() < noClickUntil) return; toggle(k, f.properties.a, layer); });
+          layer.addTo(fieldLayer);
+        });
+      }catch(e){}
+    }
+  }
+}
+// ---- 長押ししてなぞると、まとめて選ぶ／外す ----
+// 田んぼの上を長押し（HOLD_MS）→ そのまま指をすべらせると、通った田んぼを選ぶ。
+// 最初の田んぼが選択中なら「外す」になる。長押ししないで動かすと、ふつうに地図が動く。
+const HOLD_MS = 400, MOVE_PX = 10;
+let hold = null, paint = null;
+const mapEl = $("map");
+const tip = document.createElement("div"); tip.id = "paintTip"; mapEl.appendChild(tip);
+function fieldAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  if(!el || !el.classList) return null;
+  for(const c of el.classList){ if(REG.has(c)) return REG.get(c); }
+  return null;
+}
+function applyPaint(r){
+  if(!r || paint.done.has(r.k)) return;
+  paint.done.add(r.k);
+  const on = selected.has(r.k);
+  if((paint.mode === "add" && !on) || (paint.mode === "del" && on)) toggle(r.k, r.a, r.layer);
+}
+function cancelHold(){ if(hold){ clearTimeout(hold.timer); hold = null; } }
+function startHold(x, y){
+  cancelHold();
+  if(!fieldAt(x, y)) return;
+  hold = {x, y, timer: setTimeout(() => {
+    const r = hold && fieldAt(hold.x, hold.y);
+    hold = null;
+    if(!r) return;
+    paint = {mode: selected.has(r.k) ? "del" : "add", done: new Set()};
+    mapEl.classList.add("painting");
+    mapEl.classList.toggle("del", paint.mode === "del");
+    tip.textContent = paint.mode === "add" ? "なぞった田んぼを選んでいます" : "なぞった田んぼを外しています";
+    noClickUntil = Date.now() + 600000;
+    applyPaint(r);
+  }, HOLD_MS)};
+}
+function moveTo(e, x, y, many){
+  if(hold && (many || Math.hypot(x - hold.x, y - hold.y) > MOVE_PX)) cancelHold();
+  if(paint){
+    e.preventDefault(); e.stopPropagation();
+    if(!many) applyPaint(fieldAt(x, y));
+  }
+}
+function endPaint(){
+  cancelHold();
+  if(paint){ paint = null; mapEl.classList.remove("painting", "del"); noClickUntil = Date.now() + 500; }
+}
+// スマホ（指）
+mapEl.addEventListener("touchstart", e => {
+  if(e.touches.length !== 1){ cancelHold(); return; }
+  startHold(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: true});
+mapEl.addEventListener("touchmove", e => {
+  moveTo(e, e.touches[0].clientX, e.touches[0].clientY, e.touches.length !== 1);
+}, {capture: true, passive: false});
+mapEl.addEventListener("touchend", endPaint, true);
+mapEl.addEventListener("touchcancel", endPaint, true);
+// パソコン（マウス）
+mapEl.addEventListener("mousedown", e => { if(e.button === 0) startHold(e.clientX, e.clientY); });
+mapEl.addEventListener("mousemove", e => moveTo(e, e.clientX, e.clientY, false), true);
+window.addEventListener("mouseup", endPaint, true);
+
+map.on("moveend", loadTiles);
+
+function toggle(k, a, layer){
+  if(selected.has(k)){ selected.delete(k); layer.setStyle(style0); }
+  else{ selected.set(k, {a: a || 0, layer}); layer.setStyle(style1); }
+  update();
+}
+function clearSel(){ selected.forEach(v => v.layer.setStyle(style0)); selected.clear(); update(); }
+$("extra").addEventListener("input", update);
+$("place2").addEventListener("input", update);
+
+// 広さの文字を ha に直す（例：「3反」「1町2反」「50a」「0.5ha」「3000㎡」）
+const UNIT = [["ヘクタール",1],["ha",1],["町歩",0.9917],["町",0.9917],["反",0.09917],["段",0.09917],["畝",0.009917],
+              ["アール",0.01],["平米",0.0001],["㎡",0.0001],["m2",0.0001],["m²",0.0001],["a",0.01]];
+function parseArea(t){
+  t = (t || "").replace(/[０-９．]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+               .replace(/，/g, "").replace(/,/g, "").toLowerCase().replace(/\s/g, "");
+  let ha = 0, hit = false;
+  const re = /(\d+(?:\.\d+)?)(ヘクタール|ha|町歩|町|反|段|畝|アール|平米|㎡|m2|m²|a)?/g;
+  let m;
+  while((m = re.exec(t))){
+    const u = UNIT.find(x => x[0] === m[2]);
+    ha += Number(m[1]) * (u ? u[1] : 0.01);   // 単位がなければ a とみなす
+    hit = true;
+  }
+  return hit ? ha : 0;
+}
+let searchPt = null;   // 地区名でさがした場所（田んぼを選んでいないときの距離に使う）
+
+function center(){
+  let la = 0, ln = 0, n = 0;
+  selected.forEach(v => { const c = v.layer.getBounds().getCenter(); la += c.lat; ln += c.lng; n++; });
+  return n ? [la / n, ln / n] : null;
+}
+function km(p, q){
+  const R = 6371, r = Math.PI / 180;
+  const a = Math.sin((q[0]-p[0])*r/2)**2 + Math.cos(p[0]*r)*Math.cos(q[0]*r)*Math.sin((q[1]-p[1])*r/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+const yen = v => Math.round(v / 100) * 100;
+const fmt = v => v.toLocaleString("ja-JP");
+const hm = h => { const m = Math.round(h * 60 / 5) * 5; return (m >= 60 ? Math.floor(m/60) + "時間" : "") + (m % 60 ? (m % 60) + "分" : ""); };
+
+let last = null;
+function calc(){
+  let a = 0; selected.forEach(v => a += v.a);
+  const ex = parseArea($("extra").value);
+  $("extraHa").textContent = $("extra").value.trim() ? (ex > 0 ? "＝ 約" + ex.toFixed(2) + "ha" : "数字と単位で入れてください（例：3反）") : "";
+  const ha = a / 100 + ex;
+  const c = center() || searchPt;
+  if(ha <= 0) return {ha, c: null};
+  if(!c) return {ha, c: null, cls: "場所を確認して判定",
+    msg: "広さの目安は出ました。場所がわからないので、距離・交通費・お受けできるかの目安は出せません。地区名を入れて「さがす」を押すか、このまま送ってください（場所を確認してお返事します）。"};
+  const dist = km(CFG.base, c) * CFG.roadFactor;
+  const trip = dist / CFG.speed;
+  const work = CFG.setupHours + ha / CFG.sprayRate;
+  const fuel = yen(dist * 2 / CFG.kmPerL * CFG.gas);
+  const rule = CFG.rules.find(r => trip <= r[0]);
+  let cls, msg;
+  if(!rule){ cls = "次の候補"; msg = "拠点から片道1時間半をこえる地区です。「次の候補」として承り、地区のご依頼がまとまったとき、または重点地区になったときにご連絡します。"; }
+  else if(ha >= rule[1]){ cls = "お受けできる見込み"; msg = "お受けできる見込みです。下見の日程をご相談します。"; }
+  else { cls = "まとめてのご依頼でお受けできる見込み"; msg = "この地区の目安は " + rule[1] + "ha 以上です。ご近所とまとめて " + rule[1] + "ha 以上になれば、お受けできる見込みです。近くの作業と同じ日に組める場合など、日程によってはお受けできます。"; }
+  return {ha, c, dist, trip, work, fuel, cls, msg,
+          low: yen(ha * CFG.priceLow), high: yen(ha * CFG.priceHigh)};
+}
+function update(){
+  const r = last = calc();
+  $("n").textContent = selected.size;
+  $("area").textContent = r.ha.toFixed(2);
+  if(!r.c){ ["trip","time","price","fuel"].forEach(i => $(i).textContent = "―");
+    if(r.ha > 0) $("price").textContent = fmt(yen(r.ha * CFG.priceLow)) + "円 〜 " + fmt(yen(r.ha * CFG.priceHigh)) + "円";
+    $("res").className = "res " + (r.msg ? "mid" : "ng");
+    $("res").textContent = r.msg || "田んぼを選ぶか、広さを入れると、お受けできるかの目安が出ます。"; return; }
+  $("trip").textContent = "約" + Math.round(r.dist) + "km・約" + hm(r.trip);
+  $("time").textContent = "約" + hm(r.work) + "（準備・片付けを含む）";
+  $("price").textContent = fmt(r.low) + "円 〜 " + fmt(r.high) + "円";
+  $("fuel").textContent = "約" + fmt(r.fuel) + "円";
+  $("res").className = "res " + (r.cls === "お受けできる見込み" ? "ok" : r.cls === "次の候補" ? "ng" : "mid");
+  $("res").textContent = r.msg;
+}
+
+function summary(){
+  const r = last || calc();
+  const pt = r.c ? "https://www.google.com/maps?q=" + r.c[0].toFixed(5) + "," + r.c[1].toFixed(5) : "";
+  const parts = [];
+  if(pt) parts.push(pt + (selected.size ? "" : "（地区の検索位置）"));
+  if($("place2").value.trim()) parts.push("地区名：" + $("place2").value.trim());
+  if($("q").value.trim() && !selected.size) parts.push("検索：" + $("q").value.trim());
+  const ex = $("extra").value.trim();
+  return {
+    id: rid, area: r.ha.toFixed(2) + "ha（地図" + selected.size + "枚" + (ex ? "＋入力「" + ex + "」" : "") + "）",
+    trip: r.dist ? "片道 約" + Math.round(r.dist) + "km・" + hm(r.trip) : "",
+    cls: r.cls || "", place: parts.join(" ／ "),
+    content: $("content").value, period: $("period").value, memo: $("memo").value
+  };
+}
+function send(){
+  const s = summary();
+  if(!last || last.ha <= 0){ $("res").className = "res mid"; $("res").textContent = "先に、地図で田んぼを選ぶか、地図にない田んぼの広さを入れてください。"; return; }
+  const p = new URLSearchParams({usp: "pp_url"});
+  Object.keys(s).forEach(k => { if(CFG.form[k]) p.append(CFG.form[k], s[k]); });
+  const url = CFG.form.url + "?" + p.toString();
+  $("formLink").href = url;
+  $("rid2").textContent = rid;
+  // 画面を移らずに、そのまま受付フォームへ送る
+  const body = new URLSearchParams();
+  Object.keys(s).forEach(k => { if(CFG.form[k]) body.append(CFG.form[k], s[k] || "（なし）"); });   // 空欄があると受け付けられないことがあるため
+  fetch(CFG.form.url.replace(/viewform$/, "formResponse"), {method: "POST", mode: "no-cors", body}).catch(() => {});
+  $("send").disabled = true; $("send").textContent = "送りました";
+  $("lineBtn").href = "https://line.me/R/oaMessage/" + CFG.line + "/?" +
+    encodeURIComponent("受付番号 " + rid + " で目安の見積もりを送りました。");
+  $("after").hidden = false;
+  $("after").scrollIntoView({behavior: "smooth", block: "center"});
+}
+
+async function findPlace(){
+  const q = $("q").value.trim(); if(!q) return;
+  $("hits").textContent = "さがしています…";
+  try{
+    const r = await (await fetch("https://msearch.gsi.go.jp/address-search/AddressSearch?q=" + encodeURIComponent(q))).json();
+    if(!r.length){ $("hits").textContent = "見つかりませんでした。"; return; }
+    $("hits").innerHTML = "";
+    r.slice(0, 6).forEach(h => {
+      const b = document.createElement("button");
+      b.textContent = h.properties.title;
+      b.onclick = () => { searchPt = [h.geometry.coordinates[1], h.geometry.coordinates[0]]; map.setView(searchPt, 14); update(); };
+      $("hits").appendChild(b);
+    });
+    if(r.length === 1){ searchPt = [r[0].geometry.coordinates[1], r[0].geometry.coordinates[0]]; map.setView(searchPt, 14); update(); }
+  }catch(e){ $("hits").textContent = "地名の検索が使えませんでした。地図を動かしてさがしてください。"; }
+}
+$("q").addEventListener("keydown", e => { if(e.key === "Enter") findPlace(); });
+loadTiles();
+</script>
+</body>
+</html>
