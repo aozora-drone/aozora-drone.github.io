@@ -52,7 +52,7 @@ select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;bord
   <div class="find"><input id="q" placeholder="地区名でさがす（例：玉瀬、小柿）"><button class="sub" onclick="findPlace()">さがす</button></div>
   <div id="hits" class="note"></div>
   <div id="map"></div>
-  <p class="note"><b id="hint">水色の四角が、田んぼのデータがある範囲です。四角をタップすると拡大します。</b><br>地図にない田んぼは、下の「地図にない田んぼ」に地区名と広さを入れてください。</p>
+  <p class="note"><b id="hint">うすい水色が、田んぼのデータがある範囲です。タップすると拡大します。</b><br>地図にない田んぼは、下の「地図にない田んぼ」に地区名と広さを入れてください。</p>
 
   <div class="grid">
     <div class="card">
@@ -120,7 +120,7 @@ $("rid").textContent = rid;
 
 const map = L.map("map").setView([34.88, 135.30], 12);
 L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
-  {maxNativeZoom:18, maxZoom:20, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'}).addTo(map);
+  {maxNativeZoom:18, maxZoom:20, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> ｜ 田んぼの形：<a href="https://www.maff.go.jp/j/tokei/porigon/" target="_blank">農林水産省「筆ポリゴン」</a>を加工して作成'}).addTo(map);
 
 const selected = new Map();       // key -> {a, layer}
 const loaded = new Set();
@@ -144,7 +144,7 @@ function drawAreas(){
 }
 function hint(){
   const z = map.getZoom();
-  $("hint").textContent = z < 15 ? "水色の四角が、田んぼのデータがある範囲です。四角をタップすると拡大します。"
+  $("hint").textContent = z < 15 ? "うすい水色が、田んぼのデータがある範囲です。タップすると拡大します。"
                                  : "水色の線が田んぼ1枚ずつの形です。タップで選択（もう一度タップで解除）。";
 }
 async function loadTiles(){
