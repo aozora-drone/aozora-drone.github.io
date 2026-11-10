@@ -39,6 +39,11 @@ select,textarea{width:100%;font-size:16px;padding:8px;border:1px solid #bbb;bord
 .note{font-size:13px;color:var(--sub)}
 #hits button{font-size:14px;padding:6px 10px;margin:2px;background:#607d8b}
 #copybox{width:100%;height:150px;font-size:13px}
+#map{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#map.painting{outline:5px solid #ffeb3b;outline-offset:-5px}
+#map.painting.del{outline-color:#ff7043}
+#paintTip{display:none;position:absolute;z-index:1000;left:50%;top:10px;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:14px;padding:4px 12px;border-radius:14px;pointer-events:none}
+#map.painting #paintTip{display:block}
 </style>
 </head>
 <body>
@@ -122,6 +127,8 @@ const map = L.map("map").setView([34.88, 135.30], 12);
 L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
   {maxNativeZoom:18, maxZoom:20, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> ｜ 田んぼの形：<a href="https://www.maff.go.jp/j/tokei/porigon/" target="_blank">農林水産省「筆ポリゴン」</a>を加工して作成'}).addTo(map);
 
+let FK = 0; const REG = new Map();   // 田んぼの線 → {k, a, layer}
+let noClickUntil = 0;
 const selected = new Map();       // key -> {a, layer}
 const loaded = new Set();
 let index = null;
@@ -145,7 +152,7 @@ function drawAreas(){
 function hint(){
   const z = map.getZoom();
   $("hint").textContent = z < 15 ? "うすい水色が、田んぼのデータがある範囲です。タップすると拡大します。"
-                                 : "水色の線が田んぼ1枚ずつの形です。タップで選択（もう一度タップで解除）。";
+                                 : "水色の線が田んぼ1枚ずつの形です。タップで選択（もう一度タップで解除）。長押ししてなぞると、まとめて選べます。";
 }
 async function loadTiles(){
   if(!index){ try{ index = await (await fetch(CFG.tiles + "index.json")).json(); }catch(e){ return; } }
@@ -163,14 +170,76 @@ async function loadTiles(){
         const fc = await (await fetch(CFG.tiles + key + ".json")).json();
         fc.features.forEach((f, i) => {
           const k = key + ":" + i;
-          const layer = L.geoJSON(f, {style: style0});
-          layer.on("click", () => toggle(k, f.properties.a, layer));
+          const layer = L.geoJSON(f, {style: style0, className: "fk" + (++FK)});
+          REG.set("fk" + FK, {k, a: f.properties.a, layer});
+          layer.on("click", () => { if(Date.now() < noClickUntil) return; toggle(k, f.properties.a, layer); });
           layer.addTo(fieldLayer);
         });
       }catch(e){}
     }
   }
 }
+// ---- 長押ししてなぞると、まとめて選ぶ／外す ----
+// 田んぼの上を長押し（HOLD_MS）→ そのまま指をすべらせると、通った田んぼを選ぶ。
+// 最初の田んぼが選択中なら「外す」になる。長押ししないで動かすと、ふつうに地図が動く。
+const HOLD_MS = 400, MOVE_PX = 10;
+let hold = null, paint = null;
+const mapEl = $("map");
+const tip = document.createElement("div"); tip.id = "paintTip"; mapEl.appendChild(tip);
+function fieldAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  if(!el || !el.classList) return null;
+  for(const c of el.classList){ if(REG.has(c)) return REG.get(c); }
+  return null;
+}
+function applyPaint(r){
+  if(!r || paint.done.has(r.k)) return;
+  paint.done.add(r.k);
+  const on = selected.has(r.k);
+  if((paint.mode === "add" && !on) || (paint.mode === "del" && on)) toggle(r.k, r.a, r.layer);
+}
+function cancelHold(){ if(hold){ clearTimeout(hold.timer); hold = null; } }
+function startHold(x, y){
+  cancelHold();
+  if(!fieldAt(x, y)) return;
+  hold = {x, y, timer: setTimeout(() => {
+    const r = hold && fieldAt(hold.x, hold.y);
+    hold = null;
+    if(!r) return;
+    paint = {mode: selected.has(r.k) ? "del" : "add", done: new Set()};
+    mapEl.classList.add("painting");
+    mapEl.classList.toggle("del", paint.mode === "del");
+    tip.textContent = paint.mode === "add" ? "なぞった田んぼを選んでいます" : "なぞった田んぼを外しています";
+    noClickUntil = Date.now() + 600000;
+    applyPaint(r);
+  }, HOLD_MS)};
+}
+function moveTo(e, x, y, many){
+  if(hold && (many || Math.hypot(x - hold.x, y - hold.y) > MOVE_PX)) cancelHold();
+  if(paint){
+    e.preventDefault(); e.stopPropagation();
+    if(!many) applyPaint(fieldAt(x, y));
+  }
+}
+function endPaint(){
+  cancelHold();
+  if(paint){ paint = null; mapEl.classList.remove("painting", "del"); noClickUntil = Date.now() + 500; }
+}
+// スマホ（指）
+mapEl.addEventListener("touchstart", e => {
+  if(e.touches.length !== 1){ cancelHold(); return; }
+  startHold(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: true});
+mapEl.addEventListener("touchmove", e => {
+  moveTo(e, e.touches[0].clientX, e.touches[0].clientY, e.touches.length !== 1);
+}, {capture: true, passive: false});
+mapEl.addEventListener("touchend", endPaint, true);
+mapEl.addEventListener("touchcancel", endPaint, true);
+// パソコン（マウス）
+mapEl.addEventListener("mousedown", e => { if(e.button === 0) startHold(e.clientX, e.clientY); });
+mapEl.addEventListener("mousemove", e => moveTo(e, e.clientX, e.clientY, false), true);
+window.addEventListener("mouseup", endPaint, true);
+
 map.on("moveend", loadTiles);
 
 function toggle(k, a, layer){
